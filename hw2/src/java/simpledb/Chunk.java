@@ -9,6 +9,8 @@ public class Chunk {
     private int chunkSize;
     private Tuple[] tupleArray;
 
+    private int tnums;
+
     /**
      * Create a new Chunk with the specified chunkSize (int).
      * 
@@ -18,6 +20,9 @@ public class Chunk {
      */
     public Chunk(int chunkSize) {
         // IMPLEMENT ME
+        this.chunkSize = chunkSize;
+        this.tupleArray = new Tuple[chunkSize];
+        this.tnums = 0;
     }
 
     /**
@@ -27,6 +32,11 @@ public class Chunk {
      */
     public void loadChunk(DbIterator iterator) throws DbException, TransactionAbortedException {
         // IMPLEMENT ME
+        tnums=0;
+        while(iterator.hasNext() && tnums<this.chunkSize){
+            Tuple t = iterator.next();
+            tupleArray[tnums++] = t;
+        }
     }
 
     /**
@@ -34,7 +44,11 @@ public class Chunk {
      */
     public Tuple[] getChunkTuples() {
         // IMPLEMENT ME
-        return null;
+        return this.tupleArray;
+    }
+
+    public int getTupleNums(){
+        return this.tnums;
     }
 
 }

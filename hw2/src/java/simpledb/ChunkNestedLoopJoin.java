@@ -13,6 +13,8 @@ public class ChunkNestedLoopJoin extends Operator {
     private TupleDesc comboTD;
     private int chunkSize;
 
+    private Chunk chunk;
+
     /**
      * Constructor. Accepts to children to join and the predicate to join them
      * on
@@ -32,6 +34,8 @@ public class ChunkNestedLoopJoin extends Operator {
         this.child2 = child2;
         this.chunkSize = chunkSize;
         comboTD = TupleDesc.merge(child1.getTupleDesc(), child2.getTupleDesc());
+
+        this.chunk = new Chunk(chunkSize);
     }
 
     public JoinPredicate getJoinPredicate() {
@@ -48,6 +52,9 @@ public class ChunkNestedLoopJoin extends Operator {
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         // IMPLEMENT ME
+        child1.open();
+        child2.open();
+        super.open();
     }
 
     /**
@@ -55,6 +62,9 @@ public class ChunkNestedLoopJoin extends Operator {
      */
     public void close() {
         // IMPLEMENT ME
+        super.close();
+        child2.close();
+        child1.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
@@ -67,7 +77,7 @@ public class ChunkNestedLoopJoin extends Operator {
      */
     public Chunk getCurrentChunk() throws DbException, TransactionAbortedException {
         // IMPLEMENT ME
-        return null;
+        return this.chunk;
     }
  
     /**
@@ -75,7 +85,8 @@ public class ChunkNestedLoopJoin extends Operator {
      */
     protected Chunk fetchNextChunk() throws DbException, TransactionAbortedException {
         // IMPLEMENT ME
-        return null;
+        chunk.loadChunk(this.child1);
+        return this.chunk;
     }
 
     /**
@@ -96,6 +107,38 @@ public class ChunkNestedLoopJoin extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // IMPLEMENT ME
+
+        int num = this.chunk.getTupleNums();
+        
+        do{
+            Tuple[] ts = chunk.getChunkTuples();
+            for(int j=0;j<num;j++){
+                Tuple t1 = ts[j];
+
+                while (child2.hasNext()) {
+                    Tuple t2 = child2.next();
+
+                    // if match, create a combined tuple and fill it with the values
+                    // from both tuples
+                    if (!pred.filter(t1, t2))
+                        continue;
+
+                    int td1n = t1.getTupleDesc().numFields();
+                    int td2n = t2.getTupleDesc().numFields();
+
+                    // set fields in combined tuple
+                    Tuple t = new Tuple(comboTD);
+                    for (int i = 0; i < td1n; i++)
+                        t.setField(i, t1.getField(i));
+                    for (int i = 0; i < td2n; i++)
+                        t.setField(td1n + i, t2.getField(i));
+                    return t;
+                }
+                child2.rewind();
+            }
+            fetchNextChunk();
+            num = chunk.getTupleNums();
+        }while(num > 0);
         return null;
     }
 
