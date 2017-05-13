@@ -11,6 +11,8 @@ public class Filter extends Operator {
     private Predicate pred;
     private DbIterator child;
 
+    private TupleDesc td; //the TupleDesc of the tuples of this operator
+
     /**
      * Constructor accepts a predicate to apply and a child operator to read
      * tuples to filter from.
@@ -22,11 +24,15 @@ public class Filter extends Operator {
      */
     public Filter(Predicate p, DbIterator child) {
         // IMPLEMENT ME
+        this.pred = p;
+        this.child = child;
+
+        this.td = child.getTupleDesc();
     }
 
     public Predicate getPredicate() {
         // IMPLEMENT ME
-        return null;
+        return this.pred;
     }
 
     /**
@@ -34,20 +40,24 @@ public class Filter extends Operator {
      */
     public TupleDesc getTupleDesc() {
         // IMPLEMENT ME
-        return null;
+        return this.td;
     }
 
     public void open() throws DbException, NoSuchElementException,
             TransactionAbortedException {
         // IMPLEMENT ME
+        this.child.open();
+        super.open();
     }
 
     public void close() {
         // IMPLEMENT ME
+        super.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // IMPLEMENT ME
+        this.child.rewind();
     }
 
     /**
@@ -62,6 +72,12 @@ public class Filter extends Operator {
     protected Tuple fetchNext() throws NoSuchElementException,
             TransactionAbortedException, DbException {
         // IMPLEMENT ME
+        while(child.hasNext()){
+            Tuple t = child.next();
+            if(pred.filter(t)){
+                return t;
+            }
+        }
         return null;
     }
 
