@@ -100,6 +100,9 @@ public class JoinOptimizer {
      * @return An estimate of the cost of this query, in terms of cost1 and
      *         cost2
      */
+
+    //joincost(t1 join t2) = scancost(t1) + ntups(t1) x scancost(t2) //IO cost
+    //                   + ntups(t1) x ntups(t2)  //CPU cost
     public double estimateJoinCost(LogicalJoinNode j, int card1, int card2,
             double cost1, double cost2) {
         if (j instanceof LogicalSubplanJoinNode) {
@@ -109,8 +112,7 @@ public class JoinOptimizer {
         } else {
 
             // TODO: IMPLEMENT ME
-
-            return -1.0;
+            return cost1 + card1*cost2 + card1*card2;
         }
     }
 
@@ -158,7 +160,16 @@ public class JoinOptimizer {
 
         // TODO: IMPLEMENT ME
 
-        return card <= 0 ? 1 : card;
+        if(joinOp == Predicate.Op.EQUALS){
+            if(t2pkey || t1pkey){
+                return t2pkey ? card1 : card2;
+            }else{
+                return Math.max(card1,card2);
+            }
+        }else{
+            return (int)(0.3 * card1 * card2);
+        }
+        //return card <= 0 ? 1 : card;
     }
 
     /**

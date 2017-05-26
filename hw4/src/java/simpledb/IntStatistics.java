@@ -11,6 +11,8 @@ public class IntStatistics {
     private final boolean[] distinctInts;
 
     // TODO: IMPLEMENT ME
+    private int high;
+    private int low;
 
     /**
      * Create a new IntStatistic.
@@ -23,6 +25,9 @@ public class IntStatistics {
         numTuples = 0;
         numDistinctTuples = 0;
         distinctInts = new boolean[bins];
+
+        high = Integer.MIN_VALUE;
+        low = Integer.MAX_VALUE;
 
         // TODO: IMPLEMENT ME
     }
@@ -41,6 +46,11 @@ public class IntStatistics {
             numDistinctTuples++;
         }
 
+        if(v > high)
+            high = v;
+        if(v < low)
+            low = v;
+
         numTuples++;
     }
 
@@ -57,7 +67,47 @@ public class IntStatistics {
     public double estimateSelectivity(Predicate.Op op, int v) {
         // the approximate number of distinct tuples we've seen in total
         double numDistinct = ((double) numTuples) * numDistinctTuples / distinctInts.length;
+        
+        switch(op) {
+            case EQUALS:
+                if(v < low || v > high)
+                    return 0;
+                return 1.0/numDistinct;
+                
+            case GREATER_THAN:
+                if(v > high)
+                    return 0.0;
+                if(v < low)
+                    return 1.0;
+                return ((double)(high-v))/(high-low);               
 
+            case LESS_THAN:
+                if(v > high)
+                    return 1.0;
+                if(v < low)
+                    return 0.0;
+                return (double)(v-low)/(high-low);
+
+            case LESS_THAN_OR_EQ:
+                if(v >= high)
+                    return 1.0;
+                if(v <= low)
+                    return 0.0;
+                return (double)(v-low+1)/(high-low);
+                
+            case GREATER_THAN_OR_EQ:
+                if(v >= high)
+                    return 0.0;
+                if(v <= low)
+                    return 1.0;
+                return ((double)(high+1-v))/(high-low);             
+
+            case NOT_EQUALS:
+                if(v > high || v < low)
+                    return 1.0;
+                return 1.0 - 1/numDistinct;
+                
+        }
         // TODO: IMPLEMENT ME
         return -1.0;
     }

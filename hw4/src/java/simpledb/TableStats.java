@@ -64,7 +64,8 @@ public class TableStats {
     private int numPages, numTuples;
 
     // TODO: add any fields that you may need
-
+    private HashMap<Integer, IntStatistics> intStat;
+    private HashMap<Integer, StringHistogram> strStat;
     /**
      * Create a new TableStats object, that keeps track of statistics on each
      * column of a table
@@ -92,6 +93,19 @@ public class TableStats {
         int numFields = tupleDesc.numFields();
 
         // TODO: what goes here?
+        intStat = new HashMap<Integer, IntStatistics>();
+        strStat = new HashMap<Integer, StringHistogram>();
+
+        for(int i=0;i<numFields;i++){
+
+            Type tp = tupleDesc.getFieldType(i);
+
+            if(tp == Type.INT_TYPE){
+                intStat.put(i, new IntStatistics(NUM_HIST_BINS));
+            }else if(tp == Type.STRING_TYPE){
+                strStat.put(i, new StringHistogram(NUM_HIST_BINS));
+            }
+        }
 
         final DbFileIterator iter = file.iterator(null);
         try {
@@ -102,6 +116,18 @@ public class TableStats {
                 numTuples++;
 
                 // TODO: and here?
+                for(int i=0;i<numFields;i++){
+                    Field f = t.getField(i);
+                    if(f.getType() == Type.INT_TYPE){
+                        int v = ((IntField)f).getValue();
+                        IntStatistics intTemp = intStat.get(i);
+                        intTemp.addValue(v);
+                    }else if(f.getType() == Type.STRING_TYPE){
+                        String v = ((StringField)f).getValue();
+                        StringHistogram strTemp = strStat.get(i);
+                        strTemp.addValue(v);
+                    }
+                }
             }
             iter.close();
         } catch (DbException e) {
@@ -125,7 +151,8 @@ public class TableStats {
      */
     public double estimateScanCost() {
         // TODO: some code goes here
-        return 0;
+
+        return numPages*ioCostPerPage;
     }
 
     /**
@@ -139,7 +166,7 @@ public class TableStats {
      */
     public int estimateTableCardinality(double selectivityFactor) {
         // TODO: some code goes here
-        return 0;
+        return (int)(numTuples * selectivityFactor);
     }
 
     /**
@@ -157,6 +184,14 @@ public class TableStats {
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
         // TODO: some code goes here
+        Type tp = tupleDesc.getFieldType(field);
+        if(tp == Type.INT_TYPE){
+            IntStatistics intTemp = intStat.get(field);
+            return intTemp.estimateSelectivity(op, ((IntField)constant).getValue());
+        }else if(tp == Type.STRING_TYPE){
+            StringHistogram strTemp = strStat.get(field);
+            return strTemp.estimateSelectivity(op, ((StringField)constant).getValue());
+        }
         return 0;
     }
 
