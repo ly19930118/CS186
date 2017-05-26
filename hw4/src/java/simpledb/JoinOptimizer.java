@@ -226,7 +226,32 @@ public class JoinOptimizer {
         Vector<Double> planCosts = new Vector<>();
 
         // TODO: IMPLEMENT ME
+        Vector<LogicalJoinNode> joinLeft = (Vector<LogicalJoinNode>)joins.clone();
+    
         
+        while(joinLeft.size()>0){
+            int size = joinLeft.size();
+            
+            CostCard bestCC = new CostCard();
+            double minCost = Double.MAX_VALUE;
+            LogicalJoinNode minJoin = new LogicalJoinNode();
+
+            for(int i=0;i<size;i++){
+                LogicalJoinNode j = joinLeft.get(i);
+                CostCard cc = costGreedyJoin(j, plan, planCardinalities, planCosts, stats, filterSelectivities);
+                if(cc!=null && cc.cost < minCost){
+                    minCost = cc.cost;
+                    bestCC = cc;
+                    minJoin = j;
+                }
+            }
+
+            plan.add(minJoin);
+            planCardinalities.add(bestCC.card);
+            planCosts.add(bestCC.cost);
+            
+            joinLeft.remove(minJoin);
+        }
         return plan;
     }
 
