@@ -226,7 +226,7 @@ public class JoinOptimizer {
         Vector<Double> planCosts = new Vector<>();
 
         // TODO: IMPLEMENT ME
-
+        
         return plan;
     }
 
@@ -247,7 +247,37 @@ public class JoinOptimizer {
 
         // TODO: some code goes here
 
-        return null; //replace me
+        Vector<LogicalJoinNode> plan = new Vector<>();
+        int numJoins = joins.size();
+        //CostCard[] opPlan = new CostCard[numJoins+1];
+        PlanCache pc = new PlanCache();
+
+        for(int i=1;i<=numJoins;i++){
+            
+            Set<Set<LogicalJoinNode>> subsets = enumerateSubsets(joins, i);
+        
+            for(Set<LogicalJoinNode> sub : subsets){
+
+                double bestCostSoFar = Double.MAX_VALUE;
+                CostCard bestCC = new CostCard();
+
+                for(LogicalJoinNode jn : sub){
+
+                    CostCard cc = computeCostAndCardOfSubplan(stats, filterSelectivities, jn, sub, bestCostSoFar, pc);
+
+                    if(cc!=null && cc.cost < bestCostSoFar){
+                        bestCC = cc;
+                        bestCostSoFar = cc.cost;
+
+                        plan = bestCC.plan;
+                    }
+                }
+                pc.addPlan(sub, bestCostSoFar, bestCC.card, bestCC.plan);
+            }
+
+        }
+
+        return plan; //replace me
     }
 
     // ===================== Private Methods =================================
